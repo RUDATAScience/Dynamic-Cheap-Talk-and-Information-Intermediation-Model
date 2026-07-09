@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import shutil
+import time
 from google.colab import files
 
 def run_heterogeneous_simulation():
@@ -139,7 +140,8 @@ def save_and_plot_results(norm_payoff_H, norm_payoff_L, survival_rate, X_vals, Y
     # (4) Type-Lのノイズ分散を3.0に固定した際の、割合に対する崩壊（断面図グラフ）
     high_noise_idx = np.abs(X_vals - 3.0).argmin()
     axs[1, 1].plot(Y_vals, norm_payoff_H[:, high_noise_idx], label="Type-H (Honest)", color='blue', linewidth=2)
-    axs[1, 1].set_title(f"Impact of Type-L Population Size (Fixed $\sigma_{{L}}^2 \approx 3.0$)", fontsize=13, fontweight='bold')
+    # raw文字列 (r"...") を使用してLaTeXエラーを回避
+    axs[1, 1].set_title(r"Impact of Type-L Population Size (Fixed $\sigma_{\epsilon, L}^2 \approx 3.0$)", fontsize=13, fontweight='bold')
     axs[1, 1].set_xlabel("Proportion of Type-L Senders")
     axs[1, 1].set_ylabel("Normalized Attention for Type-H")
     axs[1, 1].grid(True)
@@ -148,10 +150,20 @@ def save_and_plot_results(norm_payoff_H, norm_payoff_L, survival_rate, X_vals, Y
     plt.savefig(f"{out_dir}/heterogeneous_dynamics.png", dpi=300)
     plt.show()
     
-    # ZIP化とダウンロード
+    # --- ZIP化とダウンロードの安定化 ---
     shutil.make_archive(out_dir, 'zip', out_dir)
-    print("解析が完了しました。CSVファイルとグラフをZIP形式でダウンロードします。")
-    files.download(f"{out_dir}.zip")
+    print("ZIPファイルの作成が完了しました。ファイルシステムの同期を待機しています...")
+    time.sleep(3) # ダウンロード失敗を防ぐための待機時間
+    
+    try:
+        files.download(f"{out_dir}.zip")
+        print("ダウンロード命令を送信しました。ブラウザの通知を確認してください。")
+    except Exception as e:
+        print(f"自動ダウンロードに失敗しました。画面左側のフォルダアイコンから手動でダウンロードしてください。エラー詳細: {e}")
 
+# ==============================================================================
+# 実行ブロック
+# ==============================================================================
 if __name__ == "__main__":
-    run_heterogeneous_simulation()
+    res_H, res_L, res_surv, x_ax, y_ax = run_heterogeneous_simulation()
+    save_and_plot_results(res_H, res_L, res_surv, x_ax, y_ax)
